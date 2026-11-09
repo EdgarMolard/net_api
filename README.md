@@ -18,7 +18,12 @@ Ouvrir `src/test/MonPremierProjet.http` dans VS Code, puis cliquer sur **Send Re
 ## Compiler
 
 ```bash
-dotnet build
+dotnet build -c Release
+```
+
+### Lancer via dll
+```bash
+dotnet ./bin/Release/net10.0/MonPremierProjet.dll
 ```
 
 ## Lancer les tests

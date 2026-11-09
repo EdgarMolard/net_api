@@ -10,21 +10,24 @@ builder.Services.AddSingleton<ITodoService, TodoService>();
 
 var app = builder.Build();
 
+Console.WriteLine($"\nApplication started at {DateTime.Now}\n");
+
 app.Use(async (context, next) =>
 {
     var stopwatch = System.Diagnostics.Stopwatch.StartNew();
     await next();
     stopwatch.Stop();
 
-    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var statusCode = context.Response.StatusCode;
+    var color = statusCode is >= 200 and < 300
+        ? "\u001b[32m"
+        : statusCode >= 400
+            ? "\u001b[31m"
+            : "\u001b[33m";
 
-    logger.LogInformation(
-        "Request {method} {url} => {statusCode} in {elapsedMilliseconds}ms",
-        context.Request.Method,
-        context.Request.Path,
-        context.Response.StatusCode,
-        stopwatch.ElapsedMilliseconds
-    );
+    Console.WriteLine(
+        $"{color}Request {context.Request.Method} {context.Request.Path} => " +
+        $"{statusCode} in {stopwatch.ElapsedMilliseconds}ms\u001b[0m");
 });
 
 // Configure the HTTP request pipeline.
