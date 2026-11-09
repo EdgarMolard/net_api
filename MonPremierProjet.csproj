@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="MonPremierProjet.Tests/**/*.cs" />
+    <Content Remove="MonPremierProjet.Tests/**/*" />
+    <EmbeddedResource Remove="MonPremierProjet.Tests/**/*" />
+    <None Remove="MonPremierProjet.Tests/**/*" />
+  </ItemGroup>
+
+</Project>

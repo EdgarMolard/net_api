@@ -1,0 +1,67 @@
+@MonPremierProjet_HostAddress = http://localhost:5155
+
+// Todo API GET
+
+GET {{MonPremierProjet_HostAddress}}/todos
+Accept: application/json
+
+###
+POST {{MonPremierProjet_HostAddress}}/todos
+Content-Type: application/json
+
+{
+  "title": "Aller chercher un grec",
+  "isCompleted": false
+}
+###
+
+GET {{MonPremierProjet_HostAddress}}/todos/1
+Accept: application/json
+
+###
+
+PUT {{MonPremierProjet_HostAddress}}/todos/1
+Content-Type: application/json
+
+{
+  "title": "Aller chercher un grec",
+  "isCompleted": true
+}
+###
+
+DELETE {{MonPremierProjet_HostAddress}}/todos/1
+
+###
+
+GET {{MonPremierProjet_HostAddress}}/todos/999
+Accept: application/json
+
+###
+
+POST {{MonPremierProjet_HostAddress}}/todos
+Content-Type: application/json
+
+{
+  "title": "",
+  "isCompleted": false
+}
+
+###
+
+POST {{MonPremierProjet_HostAddress}}/todos
+Content-Type: application/json
+
+{
+  "title": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "isCompleted": false
+}
+
+###
+
+PUT {{MonPremierProjet_HostAddress}}/todos/1
+Content-Type: application/json
+
+{
+  "title": "",
+  "isCompleted": true
+}
