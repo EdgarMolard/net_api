@@ -1,3 +1,6 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using MonPremierProjet.Data;
 using MonPremierProjet.Models;
 using MonPremierProjet.Services;
 
@@ -6,11 +9,12 @@ namespace MonPremierProjet.Tests;
 public class TodoServiceTests
 {
     [Fact]
-    public void Add_AssignsAnId()
+    public async Task Add_AssignsAnId()
     {
-        var service = new TodoService();
+        await using var context = CreateContext();
+        var service = new TodoService(context);
 
-        var todo = service.Add(new Todo
+        var todo = await service.AddAsync(new Todo
         {
             Title = "Apprendre les tests"
         });
@@ -19,24 +23,40 @@ public class TodoServiceTests
     }
 
     [Fact]
-    public void Delete_RemovesExistingTodo()
+    public async Task Delete_RemovesExistingTodo()
     {
-        var service = new TodoService();
-        var todo = service.Add(new Todo { Title = "À supprimer" });
+        await using var context = CreateContext();
+        var service = new TodoService(context);
+        var todo = await service.AddAsync(new Todo { Title = "À supprimer" });
 
-        var deleted = service.Delete(todo.Id);
+        var deleted = await service.DeleteAsync(todo.Id);
 
         Assert.True(deleted);
-        Assert.Empty(service.GetAll());
+        Assert.Empty(await service.GetAllTodosAsync());
     }
 
     [Fact]
-    public void GetById_ReturnsNullForUnknownTodo()
+    public async Task GetById_ReturnsNullForUnknownTodo()
     {
-        var service = new TodoService();
+        await using var context = CreateContext();
+        var service = new TodoService(context);
 
-        var todo = service.GetById(999);
+        var todo = await service.GetByIdAsync(999);
 
         Assert.Null(todo);
+    }
+
+    private static AppDbContext CreateContext()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var context = new AppDbContext(options);
+        context.Database.EnsureCreated();
+        return context;
     }
 }

@@ -11,20 +11,20 @@ public static class TodoEndpoint
             "TodoSettings:MaxTitleLength",
             100);
 
-        app.MapGet("/todos", (ITodoService service) =>
+        app.MapGet("/todos", async (ITodoService service) =>
         {
-            return Results.Ok(service.GetAll());
+            return Results.Ok(await service.GetAllTodosAsync());
         })
         .WithName("GetTodos");
 
-        app.MapGet("/todos/{id}", (int id, ITodoService service) =>
+        app.MapGet("/todos/{id}", async (int id, ITodoService service) =>
         {
-            var todo = service.GetById(id);
+            var todo = await service.GetByIdAsync(id);
             return todo is not null ? Results.Ok(todo) : Results.NotFound();
         })
         .WithName("GetTodoById");
 
-        app.MapPost("/todos", (Todo todo, ITodoService service) =>
+        app.MapPost("/todos", async (Todo todo, ITodoService service) =>
         {
             var validationError = ValidateTitle(todo.Title, maxTitleLength);
             if (validationError is not null)
@@ -32,12 +32,12 @@ public static class TodoEndpoint
                 return Results.BadRequest(validationError);
             }
 
-            var createdTodo = service.Add(todo);
+            var createdTodo = await service.AddAsync(todo);
             return Results.Created($"/todos/{createdTodo.Id}", createdTodo);
         })
         .WithName("CreateTodo");
 
-        app.MapPut("/todos/{id}", (int id, Todo updatedTodo, ITodoService service) =>
+        app.MapPut("/todos/{id}", async (int id, Todo updatedTodo, ITodoService service) =>
         {
             var validationError = ValidateTitle(updatedTodo.Title, maxTitleLength);
             if (validationError is not null)
@@ -45,14 +45,16 @@ public static class TodoEndpoint
                 return Results.BadRequest(validationError);
             }
 
-            var todo = service.Update(id, updatedTodo);
+            var todo = await service.UpdateAsync(id, updatedTodo);
             return todo is not null ? Results.Ok(todo) : Results.NotFound();
         })
         .WithName("UpdateTodo");
 
-        app.MapDelete("/todos/{id}", (int id, ITodoService service) =>
+        app.MapDelete("/todos/{id}", async (int id, ITodoService service) =>
         {
-            return service.Delete(id) ? Results.NoContent() : Results.NotFound();
+            return await service.DeleteAsync(id)
+                ? Results.NoContent()
+                : Results.NotFound();
         })
         .WithName("DeleteTodo");
     }

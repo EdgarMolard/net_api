@@ -4,9 +4,9 @@ namespace MonPremierProjet.Services;
 
 public interface ITodoService
 {
-    IReadOnlyList<Todo> GetAll();
-    Todo? GetById(int id);
-    Todo Add(Todo todo);
-    Todo? Update(int id, Todo updatedTodo);
-    bool Delete(int id);
+    Task<IReadOnlyList<Todo>> GetAllTodosAsync();
+    Task<Todo?> GetByIdAsync(int id);
+    Task<Todo> AddAsync(Todo todo);
+    Task<Todo?> UpdateAsync(int id, Todo updatedTodo);
+    Task<bool> DeleteAsync(int id);
 }

@@ -1,26 +1,33 @@
+using Microsoft.EntityFrameworkCore;
 using MonPremierProjet.Models;
+using MonPremierProjet.Data;
 
 namespace MonPremierProjet.Services;
 
-public class TodoService : ITodoService
+public class TodoService(AppDbContext context) : ITodoService
 {
-    private readonly List<Todo> todos = [];
-    private int nextTodoId = 1;
+    private readonly DbSet<Todo> todos = context.Todos;
 
-    public IReadOnlyList<Todo> GetAll() => todos;
-
-    public Todo? GetById(int id) => todos.FirstOrDefault(todo => todo.Id == id);
-
-    public Todo Add(Todo todo)
+    public async Task<IReadOnlyList<Todo>> GetAllTodosAsync()
     {
-        todo.Id = nextTodoId++;
+        return await todos.ToListAsync();
+    }
+
+    public async Task<Todo?> GetByIdAsync(int id)
+    {
+        return await todos.FirstOrDefaultAsync(todo => todo.Id == id);
+    }
+
+    public async Task<Todo> AddAsync(Todo todo)
+    {
         todos.Add(todo);
+        await context.SaveChangesAsync();
         return todo;
     }
 
-    public Todo? Update(int id, Todo updatedTodo)
+    public async Task<Todo?> UpdateAsync(int id, Todo updatedTodo)
     {
-        var todo = GetById(id);
+        var todo = await GetByIdAsync(id);
         if (todo is null)
         {
             return null;
@@ -28,12 +35,20 @@ public class TodoService : ITodoService
 
         todo.Title = updatedTodo.Title;
         todo.IsCompleted = updatedTodo.IsCompleted;
+        await context.SaveChangesAsync();
         return todo;
     }
 
-    public bool Delete(int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        var todo = GetById(id);
-        return todo is not null && todos.Remove(todo);
+        var todo = await GetByIdAsync(id);
+        if (todo is null)
+        {
+            return false;
+        }
+
+        todos.Remove(todo);
+        await context.SaveChangesAsync();
+        return true;
     }
 }
