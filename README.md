@@ -1,234 +1,237 @@
 # MonPremierProjet
 
-Petite API ASP.NET Core en .NET 10, avec des endpoints Todo et des tests xUnit.
+API REST de gestion de tâches (`Todo`) réalisée avec ASP.NET Core et .NET 10.
+Le projet utilise SQLite avec Entity Framework Core, des services asynchrones
+et une authentification JWT pour protéger les opérations d'écriture.
 
-## Lancer l'API
+> L'authentification actuelle est une démonstration pédagogique. L'endpoint
+> `/tokendev` ne doit pas être conservé tel quel dans une application de
+> production.
+
+## Fonctionnalités
+
+- consultation publique des Todo ;
+- création, modification et suppression protégées par JWT ;
+- persistance SQLite dans `app.db` ;
+- migrations Entity Framework Core ;
+- validation du titre (obligatoire, 100 caractères maximum) ;
+- génération d'un token de développement ;
+- tests unitaires du service Todo et de la génération JWT ;
+- spécification OpenAPI en environnement Development.
+
+## Prérequis
+
+- .NET 10 SDK ;
+- VS Code (facultatif, utile pour le fichier `.http`) ;
+- l'extension **REST Client** de VS Code pour exécuter les requêtes `.http`.
+
+Vérifier l'installation :
+
+```bash
+dotnet --version
+```
+
+## Installation
+
+Depuis la racine du projet :
 
 ```bash
 dotnet restore
-dotnet run
 ```
 
-L'API est ensuite accessible à l'adresse indiquée dans la console.
+La base SQLite est créée ou mise à jour à partir des migrations au besoin.
+Elle est stockée dans [`app.db`](./app.db).
 
-## Tester l'API
+## Lancer l'API
 
-Ouvrir `src/test/MonPremierProjet.http` dans VS Code, puis cliquer sur **Send Request** au-dessus d'une requête.
+### Avec `dotnet run`
 
-## Compiler
+Le profil HTTP de développement utilise le port `5155` :
+
+```bash
+dotnet run --launch-profile http
+```
+
+L'API est alors disponible à l'adresse :
+
+```text
+http://localhost:5155
+```
+
+Le profil HTTPS utilise :
+
+```text
+https://localhost:7162
+```
+
+### Depuis la DLL publiée
+
+Construire puis lancer l'application :
 
 ```bash
 dotnet build -c Release
-```
-
-### Lancer via dll
-```bash
+ASPNETCORE_ENVIRONMENT=Development \
+ASPNETCORE_URLS=http://localhost:5000 \
 dotnet ./bin/Release/net10.0/MonPremierProjet.dll
 ```
 
-## Lancer les tests
+Dans ce cas, l'API est disponible sur `http://localhost:5000`.
+
+## Configuration JWT
+
+En développement, la configuration se trouve dans
+[`appsettings.Development.json`](./appsettings.Development.json).
+
+La clé utilisée avec l'algorithme HS256 doit faire au moins 32 octets. Pour un
+autre environnement, il est préférable de fournir la clé par variable
+d'environnement :
+
+```bash
+Jwt__Key="une-cle-secrete-d-au-moins-32-caracteres" \
+Jwt__Issuer="MonPremierProjet" \
+dotnet ./bin/Release/net10.0/MonPremierProjet.dll
+```
+
+`Jwt__Key` correspond à la propriété de configuration `Jwt:Key`.
+
+## Utiliser l'API
+
+### Routes publiques
+
+| Méthode | Route | Description |
+|---|---|---|
+| `GET` | `/todos` | Liste toutes les Todo |
+| `GET` | `/todos/{id}` | Retourne une Todo |
+| `GET` | `/tokendev` | Génère un token de développement |
+
+### Routes protégées
+
+Les routes suivantes nécessitent un en-tête `Authorization` :
+
+| Méthode | Route | Description |
+|---|---|---|
+| `POST` | `/todos` | Crée une Todo |
+| `PUT` | `/todos/{id}` | Modifie une Todo |
+| `DELETE` | `/todos/{id}` | Supprime une Todo |
+
+Format de l'en-tête :
+
+```http
+Authorization: Bearer <token>
+```
+
+### Exemple avec cURL
+
+Récupérer un token :
+
+```bash
+curl http://localhost:5155/tokendev
+```
+
+Créer une Todo avec ce token :
+
+```bash
+curl -X POST http://localhost:5155/todos \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Apprendre ASP.NET Core","isCompleted":false}'
+```
+
+Une requête d'écriture sans token retourne `401 Unauthorized`.
+
+## Tester avec VS Code
+
+Ouvrir [`src/test/MonPremierProjet.http`](./src/test/MonPremierProjet.http).
+
+1. Démarrer l'API.
+2. Appeler `GET /tokendev`.
+3. Copier la valeur `accessToken`.
+4. Remplacer la valeur de `@accessToken`.
+5. Exécuter les requêtes protégées.
+
+Pour utiliser le profil HTTP de développement, modifier au besoin la première
+ligne du fichier :
+
+```http
+@MonPremierProjet_HostAddress = http://localhost:5155
+@accessToken = <token-obtenu-avec-tokendev>
+```
+
+## Tests automatisés
+
+Lancer tous les tests de la solution :
 
 ```bash
 dotnet test MonPremierProjet.slnx
 ```
 
-## Ajouter un projet à la solution
+Les tests couvrent notamment :
+
+- l'attribution automatique d'un identifiant ;
+- la suppression d'une Todo ;
+- la recherche d'une Todo inexistante ;
+- la signature, l'issuer et l'expiration du JWT.
+
+## Migrations EF Core
+
+Installer l'outil `dotnet-ef` si nécessaire :
 
 ```bash
-dotnet sln MonPremierProjet.slnx add chemin/vers/projet.csproj
+dotnet tool install --global dotnet-ef
 ```
 
-## Nettoyer les fichiers générés
+Créer une migration :
+
+```bash
+dotnet ef migrations add NomDeLaMigration
+```
+
+Appliquer les migrations :
+
+```bash
+dotnet ef database update
+```
+
+Les migrations existantes se trouvent dans [`Migrations/`](./Migrations/).
+
+## Compiler et nettoyer
+
+Compilation Release :
+
+```bash
+dotnet build -c Release
+```
+
+Nettoyage des fichiers générés :
 
 ```bash
 dotnet clean
 ```
 
-## Exercices guidés
+## Organisation du projet
 
-### Exercice 1 — Persister les Todo avec SQLite et EF Core
+```text
+src/
+├── Data/             Contexte EF Core
+├── endpoints/        Routes Todo et génération JWT
+├── models/           Modèles Todo et Token
+├── services/         Interfaces et logique métier
+└── test/             Requêtes HTTP manuelles
+Migrations/           Historique du schéma SQLite
+MonPremierProjet.Tests/ Tests automatisés
+```
 
-Objectif : remplacer la liste en mémoire de `TodoService` par une base SQLite
-locale, tout en conservant l'interface `ITodoService`.
+## Limites actuelles et prochaines étapes
 
-1. Ajouter les dépendances :
+Le projet est destiné à l'apprentissage. Les améliorations naturelles sont :
 
-   ```bash
-   dotnet add package Microsoft.EntityFrameworkCore.Sqlite
-   dotnet add package Microsoft.EntityFrameworkCore.Design
-   dotnet tool install --global dotnet-ef
-   ```
+- [Étape 1 — DTO et validation](./docs/01-dto-et-validation.md)
+- [Étape 2 — Gestion globale des erreurs](./docs/02-gestion-des-erreurs.md)
+- [Étape 3 — Tests d'intégration HTTP](./docs/03-tests-integration.md)
+- [Étape 4 — Recherche, filtrage et pagination](./docs/04-recherche-et-pagination.md)
+- remplacer `/tokendev` par une vraie connexion utilisateur ;
+- déplacer tous les secrets vers User Secrets ou des variables d'environnement.
 
-2. Créer `src/Data/AppDbContext.cs` :
-
-   ```csharp
-   using Microsoft.EntityFrameworkCore;
-   using MonPremierProjet.Models;
-
-   namespace MonPremierProjet.Data;
-
-   public class AppDbContext(DbContextOptions<AppDbContext> options)
-       : DbContext(options)
-   {
-       public DbSet<Todo> Todos => Set<Todo>();
-   }
-   ```
-
-3. Ajouter une chaîne de connexion dans `appsettings.json` :
-
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Data Source=app.db"
-   }
-   ```
-
-4. Enregistrer le contexte dans `src/Program.cs` :
-
-   ```csharp
-   builder.Services.AddDbContext<AppDbContext>(options =>
-       options.UseSqlite(
-           builder.Configuration.GetConnectionString("DefaultConnection")));
-   ```
-
-   Ajouter aussi :
-
-   ```csharp
-   using Microsoft.EntityFrameworkCore;
-   using MonPremierProjet.Data;
-   ```
-
-5. Modifier `TodoService` pour injecter `AppDbContext` et remplacer les
-   opérations sur `List<Todo>` par `DbSet<Todo>`.
-
-6. Faire évoluer `ITodoService` avec des méthodes asynchrones (`Task`,
-   `ToListAsync`, `FindAsync`, `SaveChangesAsync`).
-
-7. Créer puis appliquer la première migration :
-
-   ```bash
-   dotnet ef migrations add InitialCreate
-   dotnet ef database update
-   ```
-
-8. Vérifier qu'un Todo est toujours présent après l'arrêt et le redémarrage
-   de l'API. Le fichier `app.db` doit apparaître à la racine du projet.
-
-Points à observer :
-
-- `DbContext` est enregistré en `Scoped`, car il représente une session avec
-  la base de données ;
-- les méthodes EF asynchrones évitent de bloquer le serveur ;
-- les migrations décrivent l'évolution du schéma.
-
-### Exercice 2 — Protéger certaines routes avec un token Bearer
-
-Objectif : rendre la lecture publique, mais exiger un token pour créer,
-modifier ou supprimer un Todo. Cet exercice utilise un JWT local pour
-comprendre le mécanisme ; ce n'est pas un système complet de gestion des
-utilisateurs destiné à la production.
-
-1. Ajouter le package :
-
-   ```bash
-   dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
-   ```
-
-2. Ajouter une clé de développement dans `appsettings.Development.json` :
-
-   ```json
-   "Jwt": {
-     "Key": "cle-de-developpement-a-remplacer-par-une-valeur-secrete-longue",
-     "Issuer": "MonPremierProjet"
-   }
-   ```
-
-   Ne jamais committer une vraie clé. En pratique, utiliser un secret local ou
-   une variable d'environnement.
-
-3. Dans `Program.cs`, enregistrer l'authentification et l'autorisation :
-
-   ```csharp
-   using Microsoft.AspNetCore.Authentication.JwtBearer;
-   using Microsoft.IdentityModel.Tokens;
-   using System.Text;
-
-   var jwtKey = builder.Configuration["Jwt:Key"]
-       ?? throw new InvalidOperationException("Jwt:Key is missing.");
-
-   builder.Services
-       .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-       .AddJwtBearer(options =>
-       {
-           options.TokenValidationParameters = new TokenValidationParameters
-           {
-               ValidateIssuerSigningKey = true,
-               IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-               ValidateIssuer = true,
-               ValidIssuer = builder.Configuration["Jwt:Issuer"],
-               ValidateAudience = false,
-               ValidateLifetime = true
-           };
-       });
-   builder.Services.AddAuthorization();
-   ```
-
-4. Ajouter ces middlewares avant l'enregistrement des endpoints :
-
-   ```csharp
-   app.UseAuthentication();
-   app.UseAuthorization();
-   ```
-
-5. Protéger les routes d'écriture dans `TodoEndpoint` :
-
-   ```csharp
-   app.MapPost("/todos", /* handler */)
-       .RequireAuthorization();
-
-   app.MapPut("/todos/{id}", /* handler */)
-       .RequireAuthorization();
-
-   app.MapDelete("/todos/{id}", /* handler */)
-       .RequireAuthorization();
-   ```
-
-6. Créer un endpoint de développement qui fabrique un JWT avec
-   `JwtSecurityTokenHandler`. Il doit utiliser la même clé et le même issuer,
-   et ne doit pas être conservé tel quel en production.
-
-7. Dans le fichier `.http`, appeler une route protégée sans token :
-
-   ```http
-   POST {{MonPremierProjet_HostAddress}}/todos
-   Content-Type: application/json
-
-   {
-     "title": "Test sans token",
-     "isCompleted": false
-   }
-   ```
-
-   Résultat attendu : `401 Unauthorized`.
-
-8. Refaire la requête avec le token obtenu :
-
-   ```http
-   POST {{MonPremierProjet_HostAddress}}/todos
-   Authorization: Bearer {{accessToken}}
-   Content-Type: application/json
-
-   {
-     "title": "Test avec token",
-     "isCompleted": false
-   }
-   ```
-
-   Résultat attendu : `201 Created`.
-
-À retenir :
-
-- `UseAuthentication` identifie l'appelant ;
-- `UseAuthorization` vérifie qu'il a le droit d'accéder à la route ;
-- `.RequireAuthorization()` protège une route précise ;
-- un token absent ou invalide produit `401`, tandis qu'un utilisateur
-  authentifié mais insuffisamment autorisé produit généralement `403`.
+Les guides sont à suivre dans l'ordre. Chaque fichier indique l'objectif, les
+notions à comprendre, les modifications à réaliser et les vérifications à
+effectuer avant de passer à l'étape suivante.
