@@ -35,7 +35,7 @@ public static class TodoEndpoint
             var createdTodo = await service.AddAsync(todo);
             return Results.Created($"/todos/{createdTodo.Id}", createdTodo);
         })
-        .WithName("CreateTodo");
+        .WithName("CreateTodo").RequireAuthorization();
 
         app.MapPut("/todos/{id}", async (int id, Todo updatedTodo, ITodoService service) =>
         {
@@ -48,7 +48,7 @@ public static class TodoEndpoint
             var todo = await service.UpdateAsync(id, updatedTodo);
             return todo is not null ? Results.Ok(todo) : Results.NotFound();
         })
-        .WithName("UpdateTodo");
+        .WithName("UpdateTodo").RequireAuthorization();
 
         app.MapDelete("/todos/{id}", async (int id, ITodoService service) =>
         {
@@ -56,7 +56,7 @@ public static class TodoEndpoint
                 ? Results.NoContent()
                 : Results.NotFound();
         })
-        .WithName("DeleteTodo");
+        .WithName("DeleteTodo").RequireAuthorization();
     }
 
     private static string? ValidateTitle(string title, int maxTitleLength)

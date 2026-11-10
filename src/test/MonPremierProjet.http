@@ -1,4 +1,5 @@
 @MonPremierProjet_HostAddress = http://localhost:5000
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZXZlbG9wbWVudC11c2VyIiwianRpIjoiOGU5NjM4OTYtYzBkYi00ZjBjLThlOWItZWM1Mjk4M2E0ODU2IiwiZXhwIjoxNzk0MzE5NzM2LCJpc3MiOiJFZGdhclNlY3VyaXR5U2VydmljZSJ9.qNfOf7vKh5T9EWWC_LQPKbOF5bWU1HjnsItk7EnC4qI
 
 // Todo API GET
 
@@ -15,12 +16,24 @@ Content-Type: application/json
 }
 ###
 
+POST {{MonPremierProjet_HostAddress}}/todos
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Test avec token",
+  "isCompleted": false
+}
+
+###
+
 GET {{MonPremierProjet_HostAddress}}/todos/1
 Accept: application/json
 
 ###
 
 PUT {{MonPremierProjet_HostAddress}}/todos/1
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -30,6 +43,7 @@ Content-Type: application/json
 ###
 
 DELETE {{MonPremierProjet_HostAddress}}/todos/1
+Authorization: Bearer {{accessToken}}
 
 ###
 
@@ -39,7 +53,9 @@ Accept: application/json
 ###
 
 POST {{MonPremierProjet_HostAddress}}/todos
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
+
 
 {
   "title": "",
@@ -49,6 +65,7 @@ Content-Type: application/json
 ###
 
 POST {{MonPremierProjet_HostAddress}}/todos
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -59,9 +76,16 @@ Content-Type: application/json
 ###
 
 PUT {{MonPremierProjet_HostAddress}}/todos/1
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
   "title": "",
   "isCompleted": true
 }
+
+// Token Builder API GET
+
+###
+GET {{MonPremierProjet_HostAddress}}/tokendev
+Content-Type: application/json

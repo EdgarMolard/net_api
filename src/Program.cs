@@ -17,6 +17,7 @@ var jwtKey = builder.Configuration["Jwt:Key"]
 
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<ITodoService, TodoService>();
+builder.Services.AddScoped<ITokenBuilder, TokenBuilder>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -73,6 +74,7 @@ app.UseAuthorization();
 // Todo API
 
 TodoEndpoint.MapTodoEndpoints(app);
+TokenBuilderEndpoint.TokenBuilderMap(app);
 
 //Run the application
 app.Run();
