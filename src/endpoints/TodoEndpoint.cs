@@ -1,3 +1,4 @@
+using MonPremierProjet.Contracts;
 using MonPremierProjet.Models;
 using MonPremierProjet.Services;
 
@@ -7,46 +8,52 @@ public static class TodoEndpoint
 {
     public static void MapTodoEndpoints(this WebApplication app)
     {
-        var maxTitleLength = app.Configuration.GetValue<int>(
-            "TodoSettings:MaxTitleLength",
-            100);
-
         app.MapGet("/todos", async (ITodoService service) =>
         {
-            return Results.Ok(await service.GetAllTodosAsync());
+            var todos = await service.GetAllTodosAsync();
+            return Results.Ok(todos.Select(ToResponse));
         })
         .WithName("GetTodos");
 
         app.MapGet("/todos/{id}", async (int id, ITodoService service) =>
         {
             var todo = await service.GetByIdAsync(id);
-            return todo is not null ? Results.Ok(todo) : Results.NotFound();
+            return todo is not null
+                ? Results.Ok(ToResponse(todo))
+                : Results.NotFound();
         })
         .WithName("GetTodoById");
 
-        app.MapPost("/todos", async (Todo todo, ITodoService service) =>
+        app.MapPost("/todos", async (CreateTodoRequest request, ITodoService service) =>
         {
-            var validationError = ValidateTitle(todo.Title, maxTitleLength);
-            if (validationError is not null)
+            var todo = new Todo
             {
-                return Results.BadRequest(validationError);
-            }
+                Title = request.Title,
+                IsCompleted = request.IsCompleted
+            };
 
             var createdTodo = await service.AddAsync(todo);
-            return Results.Created($"/todos/{createdTodo.Id}", createdTodo);
+            var response = ToResponse(createdTodo);
+
+            return Results.Created($"/todos/{createdTodo.Id}", response);
         })
         .WithName("CreateTodo").RequireAuthorization();
 
-        app.MapPut("/todos/{id}", async (int id, Todo updatedTodo, ITodoService service) =>
+        app.MapPut("/todos/{id}", async (
+            int id,
+            UpdateTodoRequest request,
+            ITodoService service) =>
         {
-            var validationError = ValidateTitle(updatedTodo.Title, maxTitleLength);
-            if (validationError is not null)
+            var todo = new Todo
             {
-                return Results.BadRequest(validationError);
-            }
+                Title = request.Title,
+                IsCompleted = request.IsCompleted
+            };
 
-            var todo = await service.UpdateAsync(id, updatedTodo);
-            return todo is not null ? Results.Ok(todo) : Results.NotFound();
+            var updatedTodo = await service.UpdateAsync(id, todo);
+            return updatedTodo is not null
+                ? Results.Ok(ToResponse(updatedTodo))
+                : Results.NotFound();
         })
         .WithName("UpdateTodo").RequireAuthorization();
 
@@ -59,15 +66,13 @@ public static class TodoEndpoint
         .WithName("DeleteTodo").RequireAuthorization();
     }
 
-    private static string? ValidateTitle(string title, int maxTitleLength)
+    private static TodoResponse ToResponse(Todo todo)
     {
-        if (string.IsNullOrWhiteSpace(title))
+        return new TodoResponse
         {
-            return "Title is required.";
-        }
-
-        return title.Length > maxTitleLength
-            ? $"Title cannot exceed {maxTitleLength} characters."
-            : null;
+            Id = todo.Id,
+            Title = todo.Title,
+            IsCompleted = todo.IsCompleted
+        };
     }
 }

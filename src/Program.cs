@@ -14,9 +14,15 @@ var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Jwt:Key is missing.");
 
 // Add services to the container.
-
 builder.Services.AddOpenApi();
+
+// Vérification des flags [Required, MaxLength]
+builder.Services.AddValidation();
+
+// Ajout du service TodoService pour l'injection de dépendances
 builder.Services.AddScoped<ITodoService, TodoService>();
+
+// Ajout du service TokenBuilder pour l'injection de dépendances
 builder.Services.AddScoped<ITokenBuilder, TokenBuilder>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
