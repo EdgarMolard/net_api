@@ -16,6 +16,8 @@ var jwtKey = builder.Configuration["Jwt:Key"]
 // Add services to the container.
 builder.Services.AddOpenApi();
 
+builder.Services.AddProblemDetails();
+
 // Vérification des flags [Required, MaxLength]
 builder.Services.AddValidation();
 
@@ -46,25 +48,51 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+var logger = app.Logger;
 
 Console.WriteLine($"\nApplication started at {DateTime.Now}\n");
 
 app.Use(async (context, next) =>
 {
     var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-    await next();
-    stopwatch.Stop();
+    try
+    {
+        await next();
+    }
+    catch (Exception exception)
+    {
+        logger.LogError(
+            exception,
+            "Unhandled exception while processing {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
 
-    var statusCode = context.Response.StatusCode;
-    var color = statusCode is >= 200 and < 300
-        ? "\u001b[32m"
-        : statusCode >= 400
-            ? "\u001b[31m"
-            : "\u001b[33m";
+        throw;
+    }
+    finally
+    {
+        stopwatch.Stop();
 
-    Console.WriteLine(
-        $"{color}Request {context.Request.Method} {context.Request.Path} => " +
-        $"{statusCode} in {stopwatch.ElapsedMilliseconds}ms\u001b[0m");
+        var statusCode = context.Response.StatusCode;
+        var color = statusCode is >= 200 and < 300
+            ? "\u001b[32m"
+            : statusCode >= 400
+                ? "\u001b[31m"
+                : "\u001b[33m";
+
+        logger.LogDebug(
+            "Request {Method} {Path} => {StatusCode} in {ElapsedMilliseconds}ms",
+            context.Request.Method,
+            context.Request.Path,
+            statusCode,
+            stopwatch.ElapsedMilliseconds);
+
+        Console.WriteLine(
+            $"{color}Request {context.Request.Method} {context.Request.Path} => " +
+            $"{statusCode} in {stopwatch.ElapsedMilliseconds}ms\u001b[0m");
+    }
 });
 
 // Configure the HTTP request pipeline.
